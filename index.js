@@ -12,8 +12,7 @@ const reminders = [];
 const chrono = require("chrono-node");
 
 // Discord bot webhook
-const BOT_WEBHOOK_URL =
-	"https://discord.com/api/webhooks/1388451875958951967/3tvhggGs_u1CqYgEnwkSJ9EMPkwNi_inbulFnKHkWfex0FrwAlvWPuRlim_laEapAnMM";
+const BOT_WEBHOOK_URL = process.env.BOT_WEBHOOK_URL;
 const API_KEY = "your-api-key";
 
 // Add global error handlers
