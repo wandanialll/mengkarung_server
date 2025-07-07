@@ -1,46 +1,54 @@
-// server.js
 const express = require("express");
 const multer = require("multer");
-const FormData = require("form-data");
 const axios = require("axios");
-const fs = require("fs");
+const FormData = require("form-data");
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+const port = process.env.PORT || 3000;
+
+// Use memory storage instead of disk
+const upload = multer({ storage: multer.memoryStorage() });
 
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
 app.post("/notify", upload.single("image"), async (req, res) => {
-	const { timestamp, track_id } = req.body;
-	const file = req.file;
-
-	if (!file) return res.status(400).send("No image provided.");
-
-	const form = new FormData();
-	form.append("file", fs.createReadStream(file.path));
-	form.append(
-		"payload_json",
-		JSON.stringify({
-			content: `Person **ID ${track_id}** entered ROI at **${timestamp}**`,
-		})
-	);
-
 	try {
-		await axios.post(DISCORD_WEBHOOK_URL, form, {
-			headers: form.getHeaders(),
+		const { track_id, timestamp } = req.body;
+		const file = req.file;
+
+		if (!file) return res.status(400).send("Image not provided.");
+
+		// Prepare payload for Discord
+		const form = new FormData();
+		form.append("file", file.buffer, {
+			filename: `${track_id}_${timestamp}.jpg`,
+			contentType: "image/jpeg",
 		});
-		fs.unlinkSync(file.path); // Cleanup
-		res.send("Notification sent");
+
+		form.append(
+			"payload_json",
+			JSON.stringify({
+				content: `🕵️ Person **ID ${track_id}** detected in ROI\n🕓 **${timestamp}**`,
+			})
+		);
+
+		const headers = form.getHeaders();
+
+		// Send to Discord webhook
+		const discordRes = await axios.post(DISCORD_WEBHOOK_URL, form, { headers });
+
+		res.sendStatus(discordRes.status);
 	} catch (err) {
-		console.error("Discord error:", err.message);
-		res.status(500).send("Failed to send to Discord");
+		console.error(err);
+		res.status(500).send("Error relaying to Discord");
 	}
 });
 
-// health check endpoint
-app.get("/health", (req, res) => {
-	res.status(200).send("OK");
-});
+app.get("/", (req, res) => res.send("👀 Memory-only tracking relay is live"));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// health
+app.get("/health", (req, res) => res.send("OK"));
+
+app.listen(port, () => {
+	console.log(`🚀 Listening on port ${port}`);
+});
