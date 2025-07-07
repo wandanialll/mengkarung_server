@@ -13,7 +13,7 @@ const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
 app.post("/notify", upload.single("image"), async (req, res) => {
 	try {
-		const { track_id, timestamp } = req.body;
+		const { track_id, entry_time, exit_time } = req.body;
 		const file = req.file;
 
 		if (!file) return res.status(400).send("Image not provided.");
@@ -21,14 +21,14 @@ app.post("/notify", upload.single("image"), async (req, res) => {
 		// Prepare payload for Discord
 		const form = new FormData();
 		form.append("file", file.buffer, {
-			filename: `${track_id}_${timestamp}.jpg`,
+			filename: `person_${track_id}.jpg`,
 			contentType: "image/jpeg",
 		});
 
 		form.append(
 			"payload_json",
 			JSON.stringify({
-				content: `🕵️ Person **ID ${track_id}** detected in ROI\n🕓 **${timestamp}**`,
+				content: `🕵️ Person **ID ${track_id}** detected in ROI\n🕓 **Entry: ${entry_time}**\n🕔 **Exit: ${exit_time}**`,
 			})
 		);
 
@@ -46,7 +46,6 @@ app.post("/notify", upload.single("image"), async (req, res) => {
 
 app.get("/", (req, res) => res.send("👀 Memory-only tracking relay is live"));
 
-// health
 app.get("/health", (req, res) => res.send("OK"));
 
 app.listen(port, () => {
